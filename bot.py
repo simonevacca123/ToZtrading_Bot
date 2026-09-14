@@ -1,5 +1,7 @@
 import os
 import logging
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -12,6 +14,21 @@ from ai_analyzer import (
     roast_portfolio,
     plan_investment
 )
+
+# --- MINI SERVER PER MANTENERE IL BOT SU RENDER FREE ($0/mese) ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running 24/7!")
+
+def run_health_check():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
+
+threading.Thread(target=run_health_check, daemon=True).start()
+# -----------------------------------------------------------------
 
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -89,5 +106,5 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("roast", roast_command))
     app.add_handler(CommandHandler("investi", investi_command))
     
-    print("🚀 ToZtrading_Bot PRO è online! Comandi avanzati attivati.")
+    print("🚀 ToZtrading_Bot PRO è online!")
     app.run_polling()
